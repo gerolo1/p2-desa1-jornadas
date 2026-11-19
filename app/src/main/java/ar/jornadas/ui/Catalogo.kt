@@ -12,17 +12,17 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ar.jornadas.data.Charla
 
 @Composable
-fun Catalogo(model: ProgramaModel, abrir: (String) -> Unit) {
+fun Catalogo(model: ProgramaModel, lista: LazyListState, abrir: (String) -> Unit) {
     LaunchedEffect(Unit) { model.recargar() }
     val dia by model.dia.collectAsStateWithLifecycle()
-    var tema by remember { mutableStateOf("Todos") }
+    val tema by model.tema.collectAsStateWithLifecycle()
     val fichas by model.charlas.collectAsStateWithLifecycle()
     val aviso by model.aviso.collectAsStateWithLifecycle()
     val cargando by model.cargando.collectAsStateWithLifecycle()
     val hayEdicion by model.hayEdicion.collectAsStateWithLifecycle()
-    Selector(listOf("Ambos días", "Día 1", "Día 2"), dia) { model.dia.value = it }
+    Selector(listOf("Ambos días", "Día 1", "Día 2"), dia, model::elegirDia)
     val temas = listOf("Todos", "Android", "Datos", "Calidad")
-    Selector(temas, temas.indexOf(tema)) { tema = temas[it] }
+    Selector(temas, temas.indexOf(tema)) { model.elegirTema(temas[it]) }
     TextButton(onClick = model::recargar) { Text("Actualizar") }
     if (cargando) LinearProgressIndicator(Modifier.fillMaxWidth())
     if (!hayEdicion) {
@@ -33,7 +33,7 @@ fun Catalogo(model: ProgramaModel, abrir: (String) -> Unit) {
     } else {
         if (aviso.isNotEmpty()) Text("Sin conexión: se están usando los datos guardados.")
         if (fichas.isEmpty()) Text("Sin charlas programadas.")
-        Grilla(fichas.filter { (dia == 0 || it.dia == dia) && (tema == "Todos" || it.tema == tema) }, abrir)
+        Grilla(fichas.filter { (dia == 0 || it.dia == dia) && (tema == "Todos" || it.tema == tema) }, lista, abrir)
     }
 }
 
@@ -47,8 +47,8 @@ private fun Selector(opciones: List<String>, indice: Int, elegir: (Int) -> Unit)
 }
 
 @Composable
-fun Grilla(fichas: List<Charla>, abrir: (String) -> Unit) {
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp),
+fun Grilla(fichas: List<Charla>, lista: LazyListState = rememberLazyListState(), abrir: (String) -> Unit) {
+    LazyColumn(state = lista, verticalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(bottom = 12.dp)) {
         items(fichas, key = { it.id }) { ficha ->
             ElevatedCard(onClick = { abrir(ficha.id) }, modifier = Modifier.fillMaxWidth()) {

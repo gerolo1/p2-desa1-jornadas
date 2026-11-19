@@ -2,6 +2,7 @@ package ar.jornadas.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -17,6 +18,7 @@ fun Portada(model: ProgramaModel) {
     var seccion by rememberSaveable { mutableStateOf("Programa") }
     var detalle by rememberSaveable { mutableStateOf<String?>(null) }
     val charlas by model.charlas.collectAsStateWithLifecycle()
+    val lista = rememberLazyListState()
     BackHandler(detalle != null || seccion != "Programa") {
         if (detalle != null) detalle = null else seccion = "Programa"
     }
@@ -49,7 +51,7 @@ fun Portada(model: ProgramaModel) {
                 } else {
                     Text(seccion, style = MaterialTheme.typography.headlineLarge)
                     when (seccion) {
-                        "Programa" -> Catalogo(model) { detalle = it }
+                        "Programa" -> Catalogo(model, lista) { detalle = it }
                         "Mi agenda" -> {
                             val guardadas = charlas.filter { it.favorita }
                             if (guardadas.isEmpty()) Text("Todavía no agregaste charlas.")
