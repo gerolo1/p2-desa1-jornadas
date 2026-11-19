@@ -7,6 +7,7 @@ import ar.jornadas.lab.ServicioLocal
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.atomic.AtomicBoolean
 
 class Servicios(context: Context) {
     val mesa = ServicioLocal(context)
@@ -16,4 +17,7 @@ class Servicios(context: Context) {
         .client(OkHttpClient.Builder().addInterceptor(mesa).build())
         .addConverterFactory(GsonConverterFactory.create()).build().create(ProgramaApi::class.java)
     val agenda = AgendaRepository(api, archivo.cartelera())
+    private val cargaAutomatica = AtomicBoolean(false)
+
+    fun tomarCargaAutomatica() = cargaAutomatica.compareAndSet(false, true)
 }

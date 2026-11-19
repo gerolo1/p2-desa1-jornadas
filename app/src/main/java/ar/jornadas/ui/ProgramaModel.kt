@@ -2,13 +2,14 @@ package ar.jornadas.ui
 
 import android.app.Application
 import androidx.lifecycle.*
-import ar.jornadas.Servicios
+import ar.jornadas.JornadasApp
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.io.IOException
 
 class ProgramaModel(app: Application, private val estado: SavedStateHandle) : AndroidViewModel(app) {
-    private val servicios = Servicios(app)
+    private val servicios = (app as JornadasApp).servicios
     val mesa = servicios.mesa
     private val repo = servicios.agenda
     val charlas = repo.programa.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -18,14 +19,30 @@ class ProgramaModel(app: Application, private val estado: SavedStateHandle) : An
     val aviso = MutableStateFlow("")
     val cargando = MutableStateFlow(false)
 
+    private var peticion: Job? = null
+    private var pendiente = false
+
+    fun iniciar() {
+        if (servicios.tomarCargaAutomatica()) recargar()
+    }
+
     fun recargar() {
-        viewModelScope.launch {
+        if (peticion?.isActive == true) {
+            pendiente = true
+            return
+        }
+        peticion = viewModelScope.launch {
             cargando.value = true
-            aviso.value = ""
             try {
-                repo.sincronizar()
-            } catch (e: IOException) {
-                aviso.value = "No se pudo consultar el programa"
+                do {
+                    pendiente = false
+                    aviso.value = ""
+                    try {
+                        repo.sincronizar()
+                    } catch (e: IOException) {
+                        aviso.value = "No se pudo consultar el programa"
+                    }
+                } while (pendiente)
             } finally {
                 cargando.value = false
             }
