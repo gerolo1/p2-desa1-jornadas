@@ -19,15 +19,20 @@ fun Catalogo(model: ProgramaModel, abrir: (String) -> Unit) {
     val fichas by model.charlas.collectAsStateWithLifecycle()
     val aviso by model.aviso.collectAsStateWithLifecycle()
     val cargando by model.cargando.collectAsStateWithLifecycle()
+    val hayEdicion by model.hayEdicion.collectAsStateWithLifecycle()
     Selector(listOf("Ambos días", "Día 1", "Día 2"), dia) { model.dia.value = it }
     val temas = listOf("Todos", "Android", "Datos", "Calidad")
     Selector(temas, temas.indexOf(tema)) { tema = temas[it] }
     TextButton(onClick = model::recargar) { Text("Actualizar") }
     if (cargando) LinearProgressIndicator(Modifier.fillMaxWidth())
-    if (aviso.isNotEmpty()) {
-        Text(aviso)
-        OutlinedButton(onClick = model::recargar) { Text("Reintentar") }
+    if (!hayEdicion) {
+        if (aviso.isNotEmpty()) {
+            Text(aviso)
+            OutlinedButton(onClick = model::recargar) { Text("Reintentar") }
+        }
     } else {
+        if (aviso.isNotEmpty()) Text("Sin conexión: se están usando los datos guardados.")
+        if (fichas.isEmpty()) Text("Sin charlas programadas.")
         Grilla(fichas.filter { (dia == 0 || it.dia == dia) && (tema == "Todos" || it.tema == tema) }, abrir)
     }
 }
