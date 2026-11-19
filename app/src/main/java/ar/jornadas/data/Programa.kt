@@ -18,6 +18,9 @@ data class Charla(@PrimaryKey val id: String, val titulo: String, val tema: Stri
     val hora: String, val sala: String, val ponente: String, val resumen: String,
     val favorita: Boolean = false)
 
+data class Contenido(val id: String, val titulo: String, val tema: String, val dia: Int,
+    val hora: String, val sala: String, val ponente: String, val resumen: String)
+
 @Entity(tableName = "edicion")
 data class Edicion(@PrimaryKey val id: Int = 0)
 
@@ -29,8 +32,11 @@ abstract class CarteleraDao {
     @Query("SELECT EXISTS(SELECT 1 FROM edicion)")
     abstract fun hayEdicion(): Flow<Boolean>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    abstract suspend fun guardar(fichas: List<Charla>)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    abstract suspend fun guardarNuevas(fichas: List<Charla>)
+
+    @Update(entity = Charla::class)
+    abstract suspend fun actualizar(contenidos: List<Contenido>)
 
     @Query("DELETE FROM charlas WHERE id NOT IN (:ids)")
     abstract suspend fun retirarAusentes(ids: List<String>)
@@ -41,7 +47,8 @@ abstract class CarteleraDao {
     @Transaction
     open suspend fun reemplazar(fichas: List<Charla>) {
         retirarAusentes(fichas.map { it.id })
-        guardar(fichas)
+        guardarNuevas(fichas)
+        actualizar(fichas.map { Contenido(it.id, it.titulo, it.tema, it.dia, it.hora, it.sala, it.ponente, it.resumen) })
         registrar(Edicion())
     }
 
